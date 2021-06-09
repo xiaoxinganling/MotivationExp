@@ -1,4 +1,3 @@
-import java.awt.*;
 import java.io.*;
 import java.math.BigInteger;
 import java.util.*;
@@ -26,7 +25,7 @@ public class SketchExp {
 //                }
 //                Set<String> cache = getTasksWithOutdegree(res.get(k), 4);
 //                System.out.println(getSizeWithCache(res.get(k), cache));
-//                System.out.println(getJCTWithCache(res.get(k),cache,getEndTask(graph)));
+//                System.out.println(getTimeWithCache(res.get(k),cache,getEndTask(graph)));
                 Job j = res.get(k);
                 Map<String, GNode> graph = getGraph(j);
                 String endTask = getEndTask(graph);
@@ -36,7 +35,7 @@ public class SketchExp {
                 List<Double> memoryConsumption = new ArrayList<>();
                 for(int i = 1; i < 12; i++){
                     Set<String> cache = getTasksWithOutdegree(j, i);
-                    decreaseTime.add(getJCTWithCache(j,cache,endTask).intValue());
+                    decreaseTime.add(getTimeWithCache(j,cache,endTask).intValue());
                     memoryConsumption.add(getSizeWithCache(j, cache));
                 }
                 bw.write(decreaseTime + "\n");
@@ -48,7 +47,7 @@ public class SketchExp {
                 memoryConsumption = new ArrayList<>();
                 for(int i = 1; i < 12; i++){
                     Set<String> cache = getTasksWithStep(j,i,endTask);
-                    decreaseTime.add(getJCTWithCache(j,cache,endTask).intValue());
+                    decreaseTime.add(getTimeWithCache(j,cache,endTask).intValue());
                     memoryConsumption.add(getSizeWithCache(j, cache));
                 }
                 System.out.println(decreaseTime);
@@ -64,7 +63,7 @@ public class SketchExp {
     }
     // for every job
     // 1. get execution time with cached tasks
-    public static BigInteger getJCTWithCache(Job j, Set<String> cache, String endTask){
+    public static BigInteger getTimeWithCache(Job j, Set<String> cache, String endTask){
         BigInteger before = BigInteger.valueOf(0);
         for(Task t : j.tasks){
             before = before.add(t.endTime.subtract(t.startTime));
@@ -215,7 +214,7 @@ public class SketchExp {
         return res;
     }
 
-    private static void writeFile(List<String> keys, Map<String, Job> map, String fileName) throws Exception {
+    public static void writeFile(List<String> keys, Map<String, Job> map, String fileName) throws Exception {
         BufferedWriter bw = new BufferedWriter(new FileWriter(fileName));
         for (String key : keys){
             Job curJob = map.get(key);
