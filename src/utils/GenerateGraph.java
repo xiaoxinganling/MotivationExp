@@ -4,7 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 
-public class TestTask {
+public class GenerateGraph {
     public static void main(String[] args) throws Exception {
         String tasks = "Task{taskName='R2_1', instanceNum=5, jobName='j_45713', taskType='1', taskStatus='Terminated', startTime=86434, endTime=86443, cpuNeed=100.0, memorySize=0.49, parents=[1], taskId='j_45713_2'}\n" +
                 "Task{taskName='R18_28', instanceNum=23, jobName='j_45713', taskType='1', taskStatus='Terminated', startTime=86434, endTime=86441, cpuNeed=100.0, memorySize=0.49, parents=[28], taskId='j_45713_18'}\n" +

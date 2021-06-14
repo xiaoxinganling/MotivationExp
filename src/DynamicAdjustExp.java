@@ -11,6 +11,10 @@ public class DynamicAdjustExp {
         for(String k : keys){
             if(res.get(k).tasks.size() == 33){
                 Job j = res.get(k);
+                Map<String, Task> tasks = new HashMap<>();
+                for(Task t : j.tasks){
+                    tasks.put(t.taskId, t);
+                }
                 System.out.println(j.jobName);
                 // get graph
                 Map<String, GNode> graph = SketchExp.getGraph(j);
@@ -33,6 +37,8 @@ public class DynamicAdjustExp {
                 }
                 System.out.println(decreaseTime);
                 bw.write(decreaseTime + "\n");
+                // print tasks' waiting time
+                getTaskWaitTime(j, tasks);
                 bw.close();
                 return;
             }
@@ -91,16 +97,30 @@ public class DynamicAdjustExp {
         System.out.println(totalTime);
         return totalTime;
     }
-    public static BigInteger dfsWithCache(Map<String, Task> tasks, Task t, Set<String> needToCalculate){
+    public static BigInteger dfsWithCache(Map<String, Task> tasks, Task t, Set<String> needToCalculate) {
         BigInteger res = t.endTime.subtract(t.startTime);
         BigInteger max = BigInteger.valueOf(0);
-        for(String next : t.parents){
-            if(needToCalculate.contains(next)){
+        for (String next : t.parents) {
+            if (needToCalculate.contains(next)) {
                 Task cur = tasks.get(next);
                 max = max.max(dfsWithCache(tasks, cur, needToCalculate));//这里写错了
             }
 
         }
         return res.add(max);
+    }
+    // 3. 计算job中各个task的等待时间
+    public static void getTaskWaitTime(Job j, Map<String, Task> tasks){
+        for(Task t : j.tasks){
+            if(t.parents.size() == 0){
+                System.out.println(t + " 0");
+            }else{
+                BigInteger latest = BigInteger.valueOf(0);
+                for(String parent : t.parents){
+                    latest = latest.max(tasks.get(parent).endTime);
+                }
+                System.out.println(t + " \n" + t.startTime.subtract(latest));//maybe minus
+            }
+        }
     }
 }

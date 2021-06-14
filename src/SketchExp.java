@@ -29,7 +29,7 @@ public class SketchExp {
                 Job j = res.get(k);
                 Map<String, GNode> graph = getGraph(j);
                 String endTask = getEndTask(graph);
-                BufferedWriter bw = new BufferedWriter(new FileWriter("one_job_res"));
+                BufferedWriter bw = new BufferedWriter(new FileWriter("sketch_res_one_job"));
                 // 随着出边数的增加，cache收益和内存占用的变化
                 List<Integer> decreaseTime = new ArrayList<>();
                 List<Double> memoryConsumption = new ArrayList<>();
@@ -225,48 +225,6 @@ public class SketchExp {
         }
         bw.close();
     }
-//    private StringBuilder readFileContent(String fileName, Map<Integer,CacheAdvice> map) throws Exception {
-//        StringBuilder sb = new StringBuilder();
-//        int cur = 0;
-//        String line = null;
-//        BufferedReader br = new BufferedReader(new FileReader(fileName));
-//        while((line = br.readLine())!=null){
-//            cur++;
-//            if(map.get(cur)!=null){
-//                CacheAdvice cache = map.get(cur);
-//                if(cache.type.equals(ITERATION)){
-////                    if(!line.contains(";")){
-////                        sb.append(line).append("\n");
-////                        while ((line = br.readLine())!=null){
-////                            cur++;
-////                            if(line.contains(";")){
-////                                break;
-////                            }
-////                            sb.append(line).append("\n");
-////                        }
-////                    }
-//                    int index = line.indexOf(';');
-//                    sb.append(line, 0, index).append(".cache()").append(line,index,line.length()).append("\n");
-//                }else{
-//                    // TODO: add more cache type
-//                    for(char ch:line.toCharArray()){
-//                        if(ch==9 || ch==32){
-//                            sb.append(ch);
-//                        }else{
-//                            break;
-//                        }
-//                    }
-//                    sb.append(cache.reason.getText()).append(".cache();\n");
-//                    sb.append(line).append("\n");
-//                }
-//            }else{
-//                sb.append(line).append("\n");
-//            }
-//        }
-//        br.close();
-//        return sb;
-//    }
-//}
 }
 class Task{
     public String taskName;
