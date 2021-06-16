@@ -52,6 +52,11 @@ public class SketchExp {
                 }
                 System.out.println(decreaseTime);
                 System.out.println(memoryConsumption);
+                double averageMem = 0;
+                for(double d : memoryConsumption){
+                    averageMem += d;
+                }
+                System.out.println(averageMem / memoryConsumption.size());
                 bw.write(decreaseTime + "\n");
                 bw.write(memoryConsumption + "\n");
                 bw.close();
