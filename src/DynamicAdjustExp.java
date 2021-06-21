@@ -1,6 +1,5 @@
 import java.io.BufferedWriter;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 
@@ -8,83 +7,91 @@ public class DynamicAdjustExp {
     private static final double MEMORY_SIZE = 0.7;
     private static int TOTAl = 0;
     public static void main(String[] args) throws Exception{
-        singleJobExp();
-    }
-
-    // 单job dynamic adjust exp
-    public static void singleJobExp() throws Exception{
-        Map<String, Job> res = SketchExp.singleJobOutDegreeExp("C:\\Users\\xiaoxinganling\\Desktop\\batch_task.csv");
+        // single job
+        Map<String, Job> res = SketchExp.generateJobsWithIteration("C:\\Users\\xiaoxinganling\\Desktop\\batch_task.csv", SketchExp.MAXITERATION);
         List<String> keys = new ArrayList<>(res.keySet());
         Collections.sort(keys, (o1, o2) -> res.get(o1).startTime.subtract(res.get(o2).startTime).intValue());
         for(String k : keys){
             if(res.get(k).tasks.size() == 33){
-                Job j = res.get(k);
-                Map<String, Task> tasks = new HashMap<>();
-                for(Task t : j.tasks){
-                    tasks.put(t.taskId, t);
-                }
-                System.out.println(j.jobName);
-                // get graph
-                Map<String, GNode> graph = SketchExp.getGraph(j);
-                // get endTask
-                String endTask = SketchExp.getEndTask(graph);
-                BufferedWriter bw = new BufferedWriter(new FileWriter("dynamic_res_one_job"));
-                // 随着出边数的增加，cache收益的变化
-                List<Integer> decreaseTime = new ArrayList<>();
-                for(int i = 1; i < 12; i++){
-                    Set<String> cache = SketchExp.getTasksWithOutdegree(j, i);
-                    decreaseTime.add(getJCT(j, endTask).subtract(getJCTWithCache(j, cache, endTask)).intValue());
-                }
-                bw.write(decreaseTime + "\n");
-                System.out.println(decreaseTime);
-                // 随着距离action远近的增加，cache收益的变化
-                decreaseTime = new ArrayList<>();
-                for(int i = 1; i < 12; i++){
-                    Set<String> cache = SketchExp.getTasksWithStep(j, i, endTask);
-                    decreaseTime.add(getJCT(j, endTask).subtract(getJCTWithCache(j, cache, endTask)).intValue());
-                }
-                System.out.println(decreaseTime);
-                bw.write(decreaseTime + "\n");
-                // print tasks' waiting time
-                getTaskWaitTime(j, tasks);
-                // 测试memorysize选定的情况下，选择的task
+                singleJobExp(res.get(k));
+                break;
+            }
+        }
+        multiJobExp();
+    }
+
+    // 多job dynamic adjust exp
+    private static void multiJobExp() throws Exception{
+
+    }
+    // 单job dynamic adjust exp
+    private static void singleJobExp(Job j) throws Exception{
+        Map<String, Task> tasks = new HashMap<>();
+        for(Task t : j.tasks){
+            tasks.put(t.taskId, t);
+        }
+        System.out.println(j.jobName);
+        // get graph
+        Map<String, GNode> graph = SketchExp.getGraph(j);
+        // get endTask
+        String endTask = SketchExp.getEndTask(graph);
+        BufferedWriter bw = new BufferedWriter(new FileWriter("dynamic_res_one_job_fixed_memory"));
+        // 随着出边数的增加，cache收益的变化
+        List<Integer> decreaseTime = new ArrayList<>();
+        for(int i = 1; i < 12; i++){
+            Set<String> cache = SketchExp.getTasksWithOutdegree(j, i);
+            decreaseTime.add(getJCT(j, endTask).subtract(getJCTWithCache(j, cache, endTask)).intValue());
+        }
+        bw.write(decreaseTime + "\n");
+        System.out.println(decreaseTime);
+        // 随着距离action远近的增加，cache收益的变化
+        decreaseTime = new ArrayList<>();
+        for(int i = 1; i < 12; i++){
+            Set<String> cache = SketchExp.getTasksWithStep(j, i, endTask);
+            decreaseTime.add(getJCT(j, endTask).subtract(getJCTWithCache(j, cache, endTask)).intValue());
+        }
+        System.out.println(decreaseTime);
+        bw.write(decreaseTime + "\n");
+        // print tasks' waiting time
+        // getTaskWaitTime(j, tasks);
+        // 测试memorysize选定的情况下，选择的task
 //                System.out.println(getTasksWithOutdegreeAndMemory(j,1,MEMORY_SIZE));
-                System.out.println(getTasksWithStepAndMemory(j, 2, endTask, MEMORY_SIZE));
-                // 给定memory size情况下
-                // 随着出边数增加，cache收益的变化
-                List<Double> memorySize = new ArrayList<>();
-                decreaseTime = new ArrayList<>();
-                for(int i = 1; i < 12; i++){
-                    Set<String> cache = getTasksWithOutdegreeAndMemory(j, i, MEMORY_SIZE);
-                    //decreaseTime.add(SketchExp.getTimeWithCache(j, cache, endTask).intValue());
-                    decreaseTime.add(getJCT(j, endTask).subtract(getJCTWithCache(j, cache, endTask)).intValue());
-                    memorySize.add(SketchExp.getSizeWithCache(j, cache));
-                }
-                bw.write(decreaseTime + "\n");
-                bw.write(memorySize + "\n");
-                System.out.println(decreaseTime);
-                System.out.println(memorySize);
-                // 随着距离endTask跳数的增加，cache收益的变化
-                decreaseTime = new ArrayList<>();
-                memorySize = new ArrayList<>();
-                for(int i = 1; i < 12; i++){
-                    Set<String> cache = getTasksWithStepAndMemory(j, i, endTask, MEMORY_SIZE);
-                    //decreaseTime.add(SketchExp.getTimeWithCache(j, cache, endTask).intValue());
-                    decreaseTime.add(getJCT(j, endTask).subtract(getJCTWithCache(j, cache, endTask)).intValue());
-                    memorySize.add(SketchExp.getSizeWithCache(j, cache));
-                }
-                System.out.println(decreaseTime);
-                System.out.println(memorySize);
-                bw.write(decreaseTime + "\n");
-                bw.write(memorySize + "\n");
-                // 测试全排列
+        // System.out.println(getTasksWithStepAndMemory(j, 2, endTask, MEMORY_SIZE));
+        // 给定memory size情况下
+        // 随着出边数增加，cache收益的变化
+        List<Double> memorySize = new ArrayList<>();
+        decreaseTime = new ArrayList<>();
+        for(int i = 1; i < 12; i++){
+            Set<String> cache = getTasksWithOutdegreeAndMemory(j, i, MEMORY_SIZE);
+            //decreaseTime.add(SketchExp.getTimeWithCache(j, cache, endTask).intValue());
+            decreaseTime.add(getJCT(j, endTask).subtract(getJCTWithCache(j, cache, endTask)).intValue());
+            memorySize.add(SketchExp.getSizeWithCache(j, cache));
+        }
+        bw.write(decreaseTime + "\n");
+        bw.write(memorySize + "\n");
+        System.out.println(decreaseTime);
+        System.out.println(memorySize);
+        // 随着距离endTask跳数的增加，cache收益的变化
+        decreaseTime = new ArrayList<>();
+        memorySize = new ArrayList<>();
+        for(int i = 1; i < 12; i++){
+            Set<String> cache = getTasksWithStepAndMemory(j, i, endTask, MEMORY_SIZE);
+            //decreaseTime.add(SketchExp.getTimeWithCache(j, cache, endTask).intValue());
+            decreaseTime.add(getJCT(j, endTask).subtract(getJCTWithCache(j, cache, endTask)).intValue());
+            memorySize.add(SketchExp.getSizeWithCache(j, cache));
+        }
+        System.out.println(decreaseTime);
+        System.out.println(memorySize);
+        bw.write(decreaseTime + "\n");
+        bw.write(memorySize + "\n");
+        // 测试全排列
 //                System.out.println(getTaskListWithStepAndMemory(j, 3, endTask, MEMORY_SIZE).keySet().size());
 //                System.out.println(getTaskListWithStepAndMemory(j, 13, endTask, MEMORY_SIZE).keySet().size());
-                bw.close();
-                List<Double> avgDecreaseTime = new ArrayList<>();
-                memorySize = new ArrayList<>();
-                chooseCondition(1, 12, avgDecreaseTime, memorySize,j, endTask);
-                // test all conditions
+        bw.close();
+        List<Double> avgDecreaseTime = new ArrayList<>();
+        memorySize = new ArrayList<>();
+        chooseCondition(1, 12, avgDecreaseTime, memorySize,j, endTask);
+        // test all conditions
 //                StringBuilder sb = new StringBuilder();
 //                int mul = 1;
 //                for(int i = 1; i < 12; i++){
@@ -95,7 +102,7 @@ public class DynamicAdjustExp {
 //                }
 //                sb.deleteCharAt(sb.length() - 1);
 //                System.out.println(sb.toString() + " multiply: "+ mul);
-                //chooseCondition(1, 12, decreaseTime, memorySize, j, endTask);
+        //chooseCondition(1, 12, decreaseTime, memorySize, j, endTask);
 //                Set<String> cache1 = new HashSet<>();
 //                cache1.add("20");
 //                Set<String> cache2 = new HashSet<>();
@@ -112,9 +119,7 @@ public class DynamicAdjustExp {
 //                System.out.println(getJCT(j, endTask).subtract(getJCTWithCache(j, cache3, endTask)).intValue());
 //                System.out.println(cache4);
 //                System.out.println(getJCT(j, endTask).subtract(getJCTWithCache(j, cache4, endTask)).intValue());
-                return;
-            }
-        }
+        return;
     }
     // 1. 根据job执行图计算时间
     public static BigInteger getJCT(Job j, String endTask){
@@ -145,8 +150,21 @@ public class DynamicAdjustExp {
         needToCalculate.add(endTask);
         Queue<Task> queue = new LinkedList<>();
         queue.offer(tasks.get(endTask));
+        getTasksNeedToCalculate(cache, tasks, needToCalculate, queue);
+        System.out.println(needToCalculate + " " + needToCalculate.size());
+//        System.out.println("cache" + cache);
+//        System.out.println("need to caculate " + needToCalculate);
+        BigInteger totalTime = dfsWithCache(tasks, tasks.get(endTask), needToCalculate);
+        System.out.println("total Time With Cache: " + totalTime);
+        return totalTime;
+    }
+
+    static void getTasksNeedToCalculate(Set<String> cache, Map<String, Task> tasks, Set<String> needToCalculate, Queue<Task> queue) {
         while(!queue.isEmpty()){
             Task cur = queue.poll();
+            if(cur == null){
+                continue;
+            }
             for(String parent : cur.parents) {
                 if (cache.contains(parent)) {
                     continue;
@@ -155,13 +173,8 @@ public class DynamicAdjustExp {
                 needToCalculate.add(parent);
             }
         }
-        System.out.println(needToCalculate + " " + needToCalculate.size());
-//        System.out.println("cache" + cache);
-//        System.out.println("need to caculate " + needToCalculate);
-        BigInteger totalTime = dfsWithCache(tasks, tasks.get(endTask), needToCalculate);
-        System.out.println("total Time With Cache: " + totalTime);
-        return totalTime;
     }
+
     public static BigInteger dfsWithCache(Map<String, Task> tasks, Task t, Set<String> needToCalculate) {
         BigInteger res = t.endTime.subtract(t.startTime);
         BigInteger max = BigInteger.valueOf(0);
@@ -308,9 +321,8 @@ public class DynamicAdjustExp {
     // 5. 将不同step得到的cache结果进行组合
     private static void chooseCondition(int curStep, int totalStep, List<Double> decreaseTime,
                                         List<Double> memorySize, Job j, String endTask) throws Exception {
-        //[curStep, totalStep]
         if(curStep == totalStep){
-            BufferedWriter bw = new BufferedWriter(new FileWriter("dynamic_res_sequence_average_one_job"));
+            BufferedWriter bw = new BufferedWriter(new FileWriter("dynamic_res_one_job_sequence_average"));
             bw.write(decreaseTime + "\n");
             bw.write(memorySize + "\n");
             bw.close();
@@ -339,16 +351,23 @@ public class DynamicAdjustExp {
 //            memorySize.remove(memorySize.size() - 1);
 //        }
     }
-    private static void getTasksWithStepByQueue(int step, Map<String, Task> tasks, Queue<Task> queue) {
+    public static void getTasksWithStepByQueue(int step, Map<String, Task> tasks, Queue<Task> queue) {
         while(step > 0 && !queue.isEmpty()){
             int size = queue.size();
-            for(int i = 0; i < size; i++){
-                Task cur = queue.poll();
-                for(String parent : cur.parents){
-                    queue.offer(tasks.get(parent));
-                }
-            }
+            oneStep(tasks, queue, size);
             step--;
+        }
+    }
+
+    static void oneStep(Map<String, Task> tasks, Queue<Task> queue, int size) {
+        for(int i = 0; i < size; i++){
+            Task cur = queue.poll();
+            if(cur == null){
+                continue;
+            }
+            for(String parent : cur.parents){
+                queue.offer(tasks.get(parent));
+            }
         }
     }
 

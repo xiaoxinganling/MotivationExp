@@ -4,13 +4,37 @@ import java.util.*;
 import java.util.List;
 
 public class SketchExp {
-    private static int maxIteration = 200000;
+    public static final int MAXITERATION = 2000000;
+    private static final String multiPath = "multi/sketch_res";
+    private static final String fileName = "C:\\Users\\xiaoxinganling\\Desktop\\batch_task.csv";
     public static void main(String[] args) throws Exception {
-        Map<String, Job> res = singleJobOutDegreeExp("C:\\Users\\xiaoxinganling\\Desktop\\batch_task.csv");
-        List<String> keys = new ArrayList<>(res.keySet());
-        Collections.sort(keys, (o1, o2) -> res.get(o1).startTime.subtract(res.get(o2).startTime).intValue());
-        for(String k : keys){
-            if(res.get(k).tasks.size() == 33){
+        // write job description
+        Map<String, Job> jobs = generateJobsWithIteration(fileName, MAXITERATION);
+        //writeJobDescription(jobs);
+        // test one job
+        //List<String> keys = new ArrayList<>(jobs.keySet());
+        //keys.sort((o1, o2) -> jobs.get(o1).startTime.subtract(jobs.get(o2).startTime).intValue());
+//        for(String k : keys){
+//            if(jobs.get(k).tasks.size() == 33) {
+//                //singleJobExp(jobs.get(k), "sketch_res_one_job");
+//                break;
+//            }
+//        }
+        // test multiply job
+        multiJobExp(jobs);
+        // test dynamic multiply job
+    }
+    private static void multiJobExp(Map<String, Job> jobs) throws Exception{
+        int curNum = 0;
+        for(Job j : jobs.values()){
+            singleJobExp(j, multiPath + "_" + curNum);
+            System.out.println(curNum++);
+//            if(curNum == 10){
+//                break;
+//            }
+        }
+    }
+    private static void singleJobExp(Job j, String fileName) throws Exception{
 //                Map<String, GNode> graph = getGraph(res.get(k));
 //                for(String key : graph.keySet()){
 //                    GNode gNode = graph.get(key);
@@ -26,77 +50,93 @@ public class SketchExp {
 //                Set<String> cache = getTasksWithOutdegree(res.get(k), 4);
 //                System.out.println(getSizeWithCache(res.get(k), cache));
 //                System.out.println(getTimeWithCache(res.get(k),cache,getEndTask(graph)));
-                Job j = res.get(k);
-                Map<String, GNode> graph = getGraph(j);
-                String endTask = getEndTask(graph);
-                BufferedWriter bw = new BufferedWriter(new FileWriter("sketch_res_one_job"));
-                // 随着出边数的增加，cache收益和内存占用的变化
-                List<Integer> decreaseTime = new ArrayList<>();
-                List<Double> memoryConsumption = new ArrayList<>();
-                for(int i = 1; i < 12; i++){
-                    Set<String> cache = getTasksWithOutdegree(j, i);
-                    decreaseTime.add(getTimeWithCache(j,cache,endTask).intValue());
-                    memoryConsumption.add(getSizeWithCache(j, cache));
-                }
-                bw.write(decreaseTime + "\n");
-                bw.write(memoryConsumption + "\n");
-                System.out.println(decreaseTime);
-                System.out.println(memoryConsumption);
-                // 随着距离action远近的增加，cache收益和内存占用的变化
-                decreaseTime = new ArrayList<>();
-                memoryConsumption = new ArrayList<>();
-                for(int i = 1; i < 12; i++){
-                    Set<String> cache = getTasksWithStep(j,i,endTask);
-                    decreaseTime.add(getTimeWithCache(j,cache,endTask).intValue());
-                    memoryConsumption.add(getSizeWithCache(j, cache));
-                }
-                System.out.println(decreaseTime);
-                System.out.println(memoryConsumption);
-                double averageMem = 0;
-                for(double d : memoryConsumption){
-                    averageMem += d;
-                }
-                System.out.println(averageMem / memoryConsumption.size());
-                bw.write(decreaseTime + "\n");
-                bw.write(memoryConsumption + "\n");
-                bw.close();
-                return;
-            }
+        Map<String, GNode> graph = getGraph(j);
+        String endTask = getEndTask(graph);
+        int maxOutDegree = getMaxOutDegree(graph);
+        int maxStep = getMaxStep(j, endTask);
+        System.out.println(maxOutDegree + " degree-step " + maxStep);
+        if(maxOutDegree < 3 || maxStep < 3){
+            return;
         }
+        BufferedWriter bw = new BufferedWriter(new FileWriter(fileName));
+        // 随着出边数的增加，cache收益和内存占用的变化
+        List<Integer> decreaseTime = new ArrayList<>();
+        List<Double> memoryConsumption = new ArrayList<>();
+        for(int i = 1; i <= maxOutDegree; i++){
+            Set<String> cache = getTasksWithOutdegree(j, i);
+            decreaseTime.add(getTimeWithCache(j,cache,endTask).intValue());
+            memoryConsumption.add(getSizeWithCache(j, cache));
+        }
+        bw.write(decreaseTime + "\n");
+        bw.write(memoryConsumption + "\n");
+        System.out.println(decreaseTime);
+        System.out.println(memoryConsumption);
+        // 随着距离action远近的增加，cache收益和内存占用的变化
+        decreaseTime = new ArrayList<>();
+        memoryConsumption = new ArrayList<>();
+        for(int i = 1; i <= maxStep; i++){
+            Set<String> cache = getTasksWithStep(j,i,endTask);
+            decreaseTime.add(getTimeWithCache(j,cache,endTask).intValue());
+            memoryConsumption.add(getSizeWithCache(j, cache));
+        }
+        System.out.println(decreaseTime);
+        System.out.println(memoryConsumption);
+        double averageMem = 0;
+        for(double d : memoryConsumption){
+            averageMem += d;
+        }
+        System.out.println("avg memory consumption: " + averageMem / memoryConsumption.size());
+        bw.write(decreaseTime + "\n");
+        bw.write(memoryConsumption + "\n");
+        bw.close();
+    }
+    // get max step
+    public static int getMaxStep(Job j, String endTask){
+        Map<String, Task> tasks = new HashMap<>();
+        for(Task t : j.tasks){
+            tasks.put(t.taskId, t);
+        }
+        Queue<Task> queue = new LinkedList<>();
+        queue.offer(tasks.get(endTask));
+        int step = -1; //endTask的step为0
+        while(!queue.isEmpty()){
+            int size = queue.size();
+            DynamicAdjustExp.oneStep(tasks, queue, size);
+            step++;
+        }
+        return step;
+    }
+    // get max outDegree
+    public static int getMaxOutDegree(Map<String, GNode> graph){
+        int res = Integer.MIN_VALUE;
+        for(GNode gnode : graph.values()){
+            res = Math.max(res, gnode.outDegree);
+        }
+        return res;
+    }
+    // write job description
+    private static void writeJobDescription(Map<String, Job> jobs) throws Exception {
+        List<String> keys = new ArrayList<>(jobs.keySet());
+        keys.sort((o1, o2) -> jobs.get(o1).startTime.subtract(jobs.get(o2).startTime).intValue());
         System.out.println(keys.size());
-        writeFile(keys, res, "job_description");
+        writeFile(keys, jobs, "job_description");
     }
     // for every job
     // 1. get execution time with cached tasks
     public static BigInteger getTimeWithCache(Job j, Set<String> cache, String endTask){
+        Map<String, Task> tasks = new HashMap<>();
+        for(Task t : j.tasks){
+            tasks.put(t.taskId, t);
+        }
         BigInteger before = BigInteger.valueOf(0);
         for(Task t : j.tasks){
             before = before.add(t.endTime.subtract(t.startTime));
         }
         Set<String> needToCalculate = new HashSet<>();
         Queue<Task> queue = new LinkedList<>();
-        for(Task t : j.tasks){
-            if(t.taskId.equals(endTask)){
-                queue.offer(t);
-                needToCalculate.add(endTask);
-                break;
-            }
-        }
-        while(!queue.isEmpty()){
-            Task cur = queue.poll();
-            for(String parent : cur.parents) {
-                if (cache.contains(parent)) {
-                    continue;
-                }
-                for (Task t : j.tasks) {
-                    if (t.taskId.equals(parent)) {
-                        queue.offer(t);
-                        needToCalculate.add(t.taskId);
-                        break;
-                    }
-                }
-            }
-        }
+        queue.offer(tasks.get(endTask));
+        needToCalculate.add(endTask);
+        DynamicAdjustExp.getTasksNeedToCalculate(cache, tasks, needToCalculate, queue);
         BigInteger after = BigInteger.valueOf(0);
         for(Task t : j.tasks){
             //System.out.println(t.taskId + " " + needToCalculate + " " + needToCalculate.contains(t.taskId));
@@ -124,31 +164,20 @@ public class SketchExp {
 
     // 3. get tasks with step
     public static Set<String> getTasksWithStep(Job j, int step, String endTask){
-        Queue<Task> queue = new LinkedList<>();
+        Map<String, Task> tasks = new HashMap<>();
         for(Task t : j.tasks){
-            if(t.taskId.equals(endTask)){
-                queue.offer(t);
-                break;
-            }
+            tasks.put(t.taskId, t);
         }
-        while(step > 0 && !queue.isEmpty()){
-            int size = queue.size();
-            for(int i = 0; i < size; i++){
-                Task cur = queue.poll();
-                for(String parent : cur.parents){
-                    for(Task t : j.tasks){
-                        if(t.taskId.equals(parent)){
-                            queue.offer(t);
-                            break;
-                        }
-                    }
-                }
-            }
-            step--;
-        }
+        Queue<Task> queue = new LinkedList<>();
+        queue.offer(tasks.get(endTask));
+        DynamicAdjustExp.getTasksWithStepByQueue(step, tasks, queue);
         Set<String> res = new HashSet<>();
         while(!queue.isEmpty()){
-            res.add(queue.poll().taskId);
+            Task cur = queue.poll();
+            if(cur == null){
+                continue;
+            }
+            res.add(cur.taskId);
         }
         return res;
     }
@@ -189,7 +218,7 @@ public class SketchExp {
         return null;
     }
 
-    public static Map<String, Job> singleJobOutDegreeExp(String fileName) throws Exception {
+    public static Map<String, Job> generateJobsWithIteration(String fileName, int iteration) throws Exception {
         Map<String, Job> res = new HashMap<>();
         BufferedReader br = new BufferedReader(new FileReader(fileName));
         String line;
@@ -211,7 +240,7 @@ public class SketchExp {
             if(curNum % 1000 == 0){
                 System.out.println(curNum + " / " + 14295731);
             }
-            if(curNum > maxIteration){
+            if(curNum > iteration){
                 break;
             }
         }
