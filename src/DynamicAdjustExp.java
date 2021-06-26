@@ -1,4 +1,5 @@
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.math.BigInteger;
 import java.util.*;
@@ -16,6 +17,16 @@ public class DynamicAdjustExp {
         }
         String tracePath = args[0];//batch_task.csv "C:\\Users\\xiaoxinganling\\Desktop\\batch_task.csv"
         String multiPath = args[1];//dynamic_res_multiple_job
+        String[] paths = multiPath.split("/");
+        StringBuilder sb = new StringBuilder();
+        for(int i = 0; i < paths.length - 1; i++){
+            sb.append(paths[i] + "/");
+        }
+        File workDir = new File(sb.toString());
+        if(!sb.toString().equals("") && !workDir.exists()){
+            System.err.printf("Path %s is not exist!\n", workDir.getPath());
+            System.exit(-1);
+        }
         SketchExp.MAXOUT = Integer.valueOf(args[2]);//4
         SketchExp.MAXSTEP = Integer.valueOf(args[3]);//4
         SketchExp.MAXITERATION = Integer.valueOf(args[4]);//14295731
