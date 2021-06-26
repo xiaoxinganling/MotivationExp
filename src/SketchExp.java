@@ -8,8 +8,8 @@ public class SketchExp {
     public static int MAXITERATION = 2000000;//14295731;
     private static String multiPath = "multi/sketch_res";
     //private static String fileName = "C:\\Users\\xiaoxinganling\\Desktop\\batch_task.csv";
-    private static int MAXOUT = 4;
-    private static int MAXSTEP = 4;
+    public static int MAXOUT = 4;
+    public static int MAXSTEP = 4;
     public static void main(String[] args) throws Exception {
         if(args.length != 5){
             System.err.println("Usage: tracePath multiPath maxOut maxStep maxIteration");
@@ -17,6 +17,16 @@ public class SketchExp {
         }
         String fileName = args[0];
         multiPath = args[1];
+        String[] paths = multiPath.split("/");
+        StringBuilder sb = new StringBuilder();
+        for(int i = 0; i < paths.length - 1; i++){
+            sb.append(paths[i] + "/");
+        }
+        File workDir = new File(sb.toString());
+        if(!sb.toString().equals("") && !workDir.exists()){
+            System.err.printf("Path %s is not exist!\n", workDir.getPath());
+            System.exit(-1);
+        }
         MAXOUT = Integer.valueOf(args[2]);
         MAXSTEP = Integer.valueOf(args[3]);
         MAXITERATION = Integer.valueOf(args[4]);
@@ -44,16 +54,9 @@ public class SketchExp {
         multiJobExp(jobs, multiPath);
         // test dynamic multiply job
     }
-    private static void multiJobExp(Map<String, Job> jobs, String fileName) throws Exception{
-        Map<Integer, List<Double>> outDegreeTimeAvg = new HashMap<>();
-        Map<Integer, List<Double>> outDegreeMemAvg = new HashMap<>();
-        Map<Integer, List<Double>> stepTimeAvg = new HashMap<>();
-        Map<Integer, List<Double>> stepMemAvg = new HashMap<>();
-        Map<Integer, Integer> outDegreeMap = new HashMap<>();
-        Map<Integer, Integer> stepMap = new HashMap<>();
-        // filtered jobs
-        int curNum = 0;
+    public static List<Job> getFilteredJobs(Map<String, Job> jobs, Map<Integer, Integer> outDegreeMap, Map<Integer, Integer> stepMap){
         List<Job> filteredJobs = new ArrayList<>();
+        int curNum = 0;
         for(Job j : jobs.values()){
             Map<String, GNode> graph = getGraph(j);
             String endTask = getEndTask(graph);
@@ -69,7 +72,18 @@ public class SketchExp {
                 System.out.println(curNum + "/" + MAXITERATION);
             }
         }
-        curNum = 0;
+        return filteredJobs;
+    }
+    private static void multiJobExp(Map<String, Job> jobs, String fileName) throws Exception{
+        Map<Integer, List<Double>> outDegreeTimeAvg = new HashMap<>();
+        Map<Integer, List<Double>> outDegreeMemAvg = new HashMap<>();
+        Map<Integer, List<Double>> stepTimeAvg = new HashMap<>();
+        Map<Integer, List<Double>> stepMemAvg = new HashMap<>();
+        Map<Integer, Integer> outDegreeMap = new HashMap<>();
+        Map<Integer, Integer> stepMap = new HashMap<>();
+        // filtered jobs
+        List<Job> filteredJobs = getFilteredJobs(jobs, outDegreeMap, stepMap);
+        int curNum = 0;
         for(Job j : filteredJobs){
             // 0 => out degree's decreased time
             // 1 => out degree's memory consumption
@@ -117,7 +131,7 @@ public class SketchExp {
 //        }
     }
     // 打印decreased time和memory
-    private static void writeTimeAndMem(BufferedWriter bw, Map<Integer, List<Double>> decreasedTime, Map<Integer, List<Double>> mem) throws IOException {
+    public static void writeTimeAndMem(BufferedWriter bw, Map<Integer, List<Double>> decreasedTime, Map<Integer, List<Double>> mem) throws IOException {
         if(decreasedTime.size() != mem.size()){
             System.err.println("size isn't equal: error!!!!!");
         }
@@ -130,7 +144,7 @@ public class SketchExp {
         }
     }
     // 计算平均值存入map
-    private static void updateAvg(Map<Integer, List<Double>> map, Map<Integer, Integer> dict, List<Double> value){
+    public static void updateAvg(Map<Integer, List<Double>> map, Map<Integer, Integer> dict, List<Double> value){
 //        for(double i : value){
 //            if(i < 0){
 //                return;//<0直接不统计
@@ -441,7 +455,9 @@ class Task{
         String[] tasks = taskName.split("_");
         //taskId = jobName + "_" + tasks[0].substring(1);
         taskId = tasks[0].substring(1);
-        parents.addAll(Arrays.asList(tasks).subList(1, tasks.length));
+        if(tasks.length >= 2 && tasks[1].charAt(0) >= '0' && tasks[1].charAt(0) <= '9'){
+            parents.addAll(Arrays.asList(tasks).subList(1, tasks.length));
+        }
     }
 
     @Override
